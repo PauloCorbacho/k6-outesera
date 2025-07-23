@@ -1,0 +1,13 @@
+﻿{
+  "name": "k6-performance-tests",
+  "version": "1.0.0",
+  "description": "Projeto de testes de performance com K6",
+  "scripts": {
+    "test:smoke": "k6 run src/tests/smoke/smoke_test.js",
+    "test:load": "k6 run src/tests/load/load_test.js"
+  },
+  "devDependencies": {
+    "k6": "^0.47.0",
+    "k6-html-reporter": "^1.0.3"
+  }
+}
