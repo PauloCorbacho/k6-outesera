@@ -12,7 +12,6 @@ export default class ApiClient {
     _request(method, endpoint, payload = null, params = {}) {
         const url = `${this.baseUrl}${endpoint}`;
         
-        // Substituição do operador spread por Object.assign
         const headers = Object.assign({}, this.defaultHeaders);
         if (params.headers) {
             Object.assign(headers, params.headers);
