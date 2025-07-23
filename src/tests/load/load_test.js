@@ -82,6 +82,7 @@ export default function () {
 
 export function handleSummary(data) {
     return {
-        'results/load_test.html': htmlReport(data),
+      'results/report.html': htmlReport(data),
+      'results/load_test.json': JSON.stringify(data)
     };
-}
+  }
