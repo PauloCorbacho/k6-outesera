@@ -17,12 +17,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Create results directory
+      run: mkdir -p results
+    
     - name: Run Load Test
       run: |
         echo "Starting K6 performance tests..."
         k6 run src/tests/load/load_test.js \
           --out json=results/load_test.json \
-          --out cloud
+          --out html=results/report.html
         echo "Test completed"
         
     - name: Upload Results
@@ -30,11 +33,4 @@ jobs:
       if: always()
       with:
         name: k6-test-results
-        path: |
-          results/*.json
-          results/*.html
-          
-    - name: Print Summary
-      run: |
-        echo "Load test results saved as artifacts"
-        echo "Download results from GitHub Actions artifacts"
+        path: results/
