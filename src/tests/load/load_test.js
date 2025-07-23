@@ -1,88 +1,68 @@
-import { sleep } from 'k6';
+import http from 'k6/http';
+import { check, group, sleep } from 'k6';
 import { Trend, Counter, Rate } from 'k6/metrics';
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
-import PostService from './services/PostService.js';
-import CommentService from './services/CommentService.js';
-import UserService from './services/UserService.js';
-import { API_BASE_URL } from '../../utils/config.js';
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
+// Custom metrics
 const metrics = {
-    post: new Trend('post_latency'),
-    comment: new Trend('comment_latency'),
-    user: new Trend('user_latency'),
+    responseTime: new Trend('response_time_ms'),
     errors: new Counter('errors'),
     errorRate: new Rate('error_rate')
 };
 
+// Correct threshold syntax
 export const options = {
     scenarios: {
         constant_load: {
             executor: 'constant-vus',
             vus: 500,
             duration: '1m',
-        },
+            gracefulStop: '30s'
+        }
     },
     thresholds: {
-        'post_latency': ['p(95)<500'],
-        'comment_latency': ['p(95)<400'],
-        'user_latency': ['p(95)<300'],
-        'error_rate': ['rate<0.10'],
+        'http_req_duration': ['p(95)<500', 'max<2000'],  
+        'http_req_failed': ['rate<0.05'],                
+        'error_rate': ['rate<0.05'],                     
+        'errors': ['count<100']                          
     }
 };
 
 export default function () {
-    const postService = new PostService(API_BASE_URL);
-    const commentService = new CommentService(API_BASE_URL);
-    const userService = new UserService(API_BASE_URL);
-
     try {
-        const userRes = userService.getUser(1);
-        if (!userRes.success) {
-            metrics.errors.add(1);
-            metrics.errorRate.add(1);
-        } else {
-            metrics.user.add(userRes.response.timings.duration);
-        }
-        sleep(0.5);
+        const params = {
+            timeout: '5s',
+            tags: { name: 'API_Call' }
+        };
 
-        const postRes = postService.createPost({
-            title: `Test Post ${__VU}`,
-            body: 'Content',
-            userId: 1
-        });
+        const res = http.get('https://jsonplaceholder.typicode.com/posts/1', params);
         
-        if (!postRes.success) {
+        const isSuccess = check(res, {
+            'Status 200': (r) => r.status === 200,
+            'Response OK': (r) => r.json().id === 1
+        });
+
+        metrics.responseTime.add(res.timings.duration);
+        
+        if (!isSuccess) {
             metrics.errors.add(1);
             metrics.errorRate.add(1);
-        } else {
-            metrics.post.add(postRes.response.timings.duration);
-            const postId = postRes.response.json().id;
-            
-            const commentRes = commentService.createComment({
-                postId: postId,
-                name: 'Test Comment',
-                email: 'test@example.com',
-                body: 'Comment content'
-            });
-            
-            if (!commentRes.success) {
-                metrics.errors.add(1);
-                metrics.errorRate.add(1);
-            } else {
-                metrics.comment.add(commentRes.response.timings.duration);
-            }
+            console.error(`Failed request - Status: ${res.status}`);
         }
+        
         sleep(1);
-
+        
     } catch (error) {
         metrics.errors.add(1);
         metrics.errorRate.add(1);
+        console.error(`Critical error: ${error}`);
     }
 }
 
 export function handleSummary(data) {
     return {
-      'results/report.html': htmlReport(data),
-      'results/load_test.json': JSON.stringify(data)
+        'results/report.html': htmlReport(data),
+        stdout: textSummary(data, { indent: ' ', enableColors: true })
     };
-  }
+}

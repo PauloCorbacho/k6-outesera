@@ -6,6 +6,8 @@ export const ENDPOINTS = [
     '/users/1/todos'
 ];
 export const THRESHOLDS = {
-    http_req_duration: ['p(95)<800', 'p(99)<1500'],
-    http_req_failed: ['rate<0.05']
+    http_req_duration: ['p(95)<500', 'max<3000'],  
+    http_req_failed: ['rate<0.05'],                
+    http_req_tls_handshaking: ['max<100'],         
+    iteration_duration: ['p(95)<2500']            
 };
