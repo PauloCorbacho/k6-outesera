@@ -17,7 +17,7 @@ export const options = {
         constant_load: {
             executor: 'constant-vus',
             vus: 500,
-            duration: '5m',
+            duration: '30s',
             gracefulStop: '30s'
         }
     },
